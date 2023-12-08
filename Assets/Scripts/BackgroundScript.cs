@@ -63,7 +63,6 @@ public class BackgroundScript : MonoBehaviour
 
         if (obj.transform.position.x > viewWidth + obj.transform.localScale.x)
         {
-            //obj.SetActive(false);
             obj.transform.position = new Vector3(viewWidth * (-1), obj.transform.position.y, obj.transform.position.z);
             speed[idx] = Speed;
         }
