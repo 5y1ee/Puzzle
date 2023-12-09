@@ -45,6 +45,7 @@ public class SerialStack<T>
 
 }
 
+[System.Serializable]
 public class ObjectPool<T> where T : class
 {
     int count;

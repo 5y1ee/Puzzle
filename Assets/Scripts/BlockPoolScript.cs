@@ -26,7 +26,7 @@ public class BlockPoolScript : MonoBehaviour
             obj.SetActive(false);
            
             var block = obj.GetComponent<BlockScript>();
-            block.Color = (BlockScript.BLOCK_COLOR)UnityEngine.Random.Range(0, cnt);
+            block.Color = (BlockScript.BLOCK_COLOR)UnityEngine.Random.Range(1, cnt);
 
             switch(block.Color)
             {

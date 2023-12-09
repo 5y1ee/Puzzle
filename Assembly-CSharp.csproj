@@ -61,10 +61,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\GameManagerScript.cs" />
+    <Compile Include="Assets\Scripts\BoardEditor.cs" />
     <Compile Include="Assets\Scripts\ObjectPool.cs" />
     <Compile Include="Assets\Scripts\BoardManagerScript.cs" />
     <Compile Include="Assets\Scripts\BlockScript.cs" />
     <Compile Include="Assets\Scripts\BlockPoolScript.cs" />
+    <Compile Include="Assets\Scripts\EditorWindowScript.cs" />
     <Compile Include="Assets\Scripts\BackgroundScript.cs" />
   </ItemGroup>
   <ItemGroup>
