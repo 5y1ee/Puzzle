@@ -46,7 +46,11 @@ public class EditorWindowScript : EditorWindow
         for (int r = 0; r < row; ++r)
         {
             for (int c = 0; c < col; ++c)
-                color_2d[r, c] = (int)board[r, c].Color;
+            {
+                if (board[r, c] == null) color_2d[r, c] = -1;
+                else color_2d[r, c] = (int)board[r, c].GetComponent<BlockScript>().Color;
+            }
+                
         }
 
         for (int r = 0; r < row; ++r)
@@ -66,7 +70,10 @@ public class EditorWindowScript : EditorWindow
         for (int r = 0; r < row; ++r)
         {
             for (int c = 0; c < col; ++c)
-                connect_2d[r, c] = board[r, c].Connected;
+            {
+                if (board[r, c] == null) connect_2d[r, c] = -1;
+                else connect_2d[r, c] = board[r, c].GetComponent<BlockScript>().Connected;
+            }
         }
 
         for (int r = 0; r < row; ++r)

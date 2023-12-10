@@ -34,7 +34,10 @@ public class BoardEditor : Editor
         for (int r=0; r < row; ++r)
         {
             for (int c=0; c < col; ++c)
-                color_2d[r, c] = (int)board[r, c].Color;
+            {
+                if (board[r, c] == null) continue;
+                color_2d[r, c] = (int)board[r, c].GetComponent<BlockScript>().Color;
+            }
         }
 
         for (int r = 0; r < row; ++r)
@@ -42,7 +45,10 @@ public class BoardEditor : Editor
             EditorGUILayout.BeginHorizontal();
             for (int c = 0; c < col; ++c)
             {
-                color_2d[r, c] = EditorGUILayout.IntField(color_2d[r, c]);
+                if (board[r, c] == null)
+                    color_2d[r, c] = EditorGUILayout.IntField(-1);
+                else
+                    color_2d[r, c] = EditorGUILayout.IntField(color_2d[r, c]);
             }
             EditorGUILayout.EndHorizontal();
         }
@@ -55,7 +61,8 @@ public class BoardEditor : Editor
         {
             for (int c = 0; c < col; ++c)
             {
-                connect_2d[r, c] = board[r, c].Connected;
+                if (board[r, c] == null) continue;
+                connect_2d[r, c] = board[r, c].GetComponent<BlockScript>().Connected;
             }
         }
 
@@ -64,7 +71,10 @@ public class BoardEditor : Editor
             EditorGUILayout.BeginHorizontal();
             for (int c = 0; c < col; ++c)
             {
-                connect_2d[r, c] = EditorGUILayout.IntField(connect_2d[r, c]);
+                if (board[r, c] == null)
+                    connect_2d[r, c] = EditorGUILayout.IntField(-1);
+                else
+                    connect_2d[r, c] = EditorGUILayout.IntField(connect_2d[r, c]);
             }
             EditorGUILayout.EndHorizontal();
         }

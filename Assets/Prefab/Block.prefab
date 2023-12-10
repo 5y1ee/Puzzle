@@ -103,10 +103,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64f6b4c1db5a2704e88a7c78816e624d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_BoardManager: {fileID: 0}
+  m_PoolManager: {fileID: 0}
   m_color: 0
+  m_direction: 0
   m_coord:
-    x: 0
-    y: 0
+    row: 0
+    col: 0
+  m_start:
+    row: 0
+    col: 0
   m_Connected: 0
 --- !u!61 &8851790244078518305
 BoxCollider2D:
@@ -281,8 +287,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 5
-  m_fontSizeBase: 5
+  m_fontSize: 4
+  m_fontSizeBase: 4
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18

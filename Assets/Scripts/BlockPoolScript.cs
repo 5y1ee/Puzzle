@@ -27,6 +27,7 @@ public class BlockPoolScript : MonoBehaviour
            
             var block = obj.GetComponent<BlockScript>();
             block.Color = (BlockScript.BLOCK_COLOR)UnityEngine.Random.Range(1, cnt);
+            block.Direction = (BlockScript.BLOCK_DIRECTION)UnityEngine.Random.Range(0, (int)BlockScript.BLOCK_DIRECTION.END);
 
             switch(block.Color)
             {
@@ -39,6 +40,7 @@ public class BlockPoolScript : MonoBehaviour
                 case BlockScript.BLOCK_COLOR.YELLOW:
                     obj.GetComponent<SpriteRenderer>().color = Color.yellow; break;
             }
+            block.PoolManager = this.gameObject;
 
             obj.name = "Block_" + n;
             return block;
