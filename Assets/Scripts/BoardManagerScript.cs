@@ -85,9 +85,6 @@ public class BoardManagerScript : MonoBehaviour
     private void GenerateTile(uint stage)
     {
         // Stage 정보 받아와서 Row, Col, Cnt 추가 설정 가능
-        //
-        //
-
 
         // Pooling에서 Block pop, Position 설정
         int cnt = m_matrix.cnt;

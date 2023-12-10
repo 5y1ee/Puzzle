@@ -20,7 +20,7 @@ public class BlockPoolScript : MonoBehaviour
     void BlockPooling()
     {
         int cnt = (int)BlockScript.BLOCK_COLOR.END;
-        m_BlockPool = new ObjectPool<BlockScript>(200, (int n) =>
+        m_BlockPool = new ObjectPool<BlockScript>(BoardManager.GetComponent<BoardManagerScript>().Matrix.cnt * 2, (int n) =>
         {
             var obj = Instantiate(_block, transform);
             obj.SetActive(false);
