@@ -105,8 +105,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_BoardManager: {fileID: 0}
   m_PoolManager: {fileID: 0}
-  m_color: 0
-  m_direction: 0
+  m_Type: 0
+  m_Color: 0
+  m_Direction: 0
   m_coord:
     row: 0
     col: 0

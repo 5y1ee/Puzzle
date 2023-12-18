@@ -4,6 +4,8 @@ using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 
+#if UNITY_EDITOR
+
 public class EditorWindowScript : EditorWindow
 {
     Object m_BoardManager;
@@ -87,3 +89,5 @@ public class EditorWindowScript : EditorWindow
     }
 
 }
+
+#endif

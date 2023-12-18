@@ -15,10 +15,6 @@ public class BoardManagerScript : MonoBehaviour
         public int col;
         public int cnt;
     }
-    //public struct BLOCK_INFO
-    //{
-    //    public int row, col;
-    //}
 
     // 
     //[SerializeField] private BlockScript[,] m_Board;    // 블록 배치에 대한 2차원 배열
@@ -28,6 +24,7 @@ public class BoardManagerScript : MonoBehaviour
     [SerializeField] private Grid _grid;        // 그리드로 게임 내 포지션 좌표 설정
     [SerializeField] private Transform m_Pool;  // 블록 풀링 트랜스폼
     [SerializeField] private ObjectPool<BlockScript> m_BlockPool;   // 블록 풀링 객체
+    [SerializeField] private List<COORDINATE> Coord_list;
 
     // 내부 변수
     private float grid_len, grid_gap;   
@@ -35,11 +32,11 @@ public class BoardManagerScript : MonoBehaviour
     // 탐색 순서 left -> down -> right -> up
     private int[] dr = { 0, 1, 0, -1 };
     private int[] dc = { -1, 0, 1, 0 };
-    private List<COORDINATE> Coord_list = new List<COORDINATE>();
 
     // Property
     public GameObject[,] BoardOBJ { get { return m_Board; } }
     public Vector3[,] PositionOBJ { get { return m_Position; } }
+    public List<COORDINATE> COORD_LIST { get { return Coord_list; } set { Coord_list = value; } }
     public MATRIX Matrix {  get { return m_matrix; } set {  m_matrix = value; } }
 
     // Method
@@ -53,6 +50,7 @@ public class BoardManagerScript : MonoBehaviour
 
         m_Board = new GameObject[Row, Col];
         m_Position = new Vector3[Row, Col];
+        Coord_list = new List<COORDINATE>();
 
     }
     private void Start()
@@ -142,11 +140,20 @@ public class BoardManagerScript : MonoBehaviour
             {
                 if (m_Board[r, c] == null) continue;
                 BlockScript blockScript = m_Board[r, c].GetComponent<BlockScript>();
+
+                //if (m_Position[r, c] != m_Board[r, c].transform.position)
+                if (blockScript.Coord.row != r || blockScript.Coord.col != c)
+                {
+                    Debug.Log("##" + m_Board[r, c].name + " " + r + "," + c + " block is not on right position");
+                }
+
                 if (visited[r, c] == true)
                 {
                     num = m_Board[blockScript.Coord_start.row, blockScript.Coord_start.col].GetComponent<BlockScript>().Connected;
                     blockScript.Connected = num;
                     str = blockScript.Direction.ToString().Substring(0, 1) + num.ToString();
+                    if (blockScript.Type != BlockScript.BLOCK_TYPE.NORMAL)
+                        str += blockScript.Type.ToString().Substring(0, 1);
                     m_Board[r, c].gameObject.transform.GetChild(0).GetComponent<TextMeshPro>().text = str;
                     continue;
                 }
@@ -154,6 +161,8 @@ public class BoardManagerScript : MonoBehaviour
                 Board_DFS(m_Board, visited, r, c, ref num, r, c);
                 blockScript.Connected = num;
                 str = blockScript.Direction.ToString().Substring(0, 1) + num.ToString();
+                if (blockScript.Type != BlockScript.BLOCK_TYPE.NORMAL)
+                    str += blockScript.Type.ToString().Substring(0, 1);
                 m_Board[r, c].gameObject.transform.GetChild(0).GetComponent<TextMeshPro>().text = str;
             }
 
@@ -163,12 +172,18 @@ public class BoardManagerScript : MonoBehaviour
 
     public void Explode_DFS(bool[,] visited, int r, int c)
     {
-        Debug.Log(r + " " + c + " explode");
+        Explode_DFS(visited, new COORDINATE { row = r, col = c });
+    }
+    public void Explode_DFS(bool[,] visited, COORDINATE coord)
+    {
+        Debug.Log(coord.row + "," + coord.col + " explode");
 
+        int r = coord.row, c = coord.col;
         if (visited[r, c] == true) return;
         // 방문 처리
         visited[r, c] = true;
-        Coord_list.Add(new COORDINATE { row = r, col = c });
+        //Coord_list.Add(new COORDINATE { row = r, col = c });
+        Coord_list.Add(coord);
 
         for (int i = 0; i < 4; ++i)
         {
@@ -176,39 +191,217 @@ public class BoardManagerScript : MonoBehaviour
             int nc = c + dc[i];
 
             if (nr < 0 || nc < 0 || nr >= Row || nc >= Col) continue;
-            if (m_Board[nr, nc] == null) continue;
+            if (m_Board[nr, nc] == null || m_Board[nr, nc].GetComponent<BlockScript>().Type != BlockScript.BLOCK_TYPE.NORMAL) continue;
             if (visited[nr, nc] == true || m_Board[nr, nc].GetComponent<BlockScript>().Color != m_Board[r, c].GetComponent<BlockScript>().Color) continue;
 
             Explode_DFS(visited, nr, nc);
         }
 
         // 폭발 로직
-        m_Board[r, c].GetComponent<BlockScript>().InitBlock();
-        m_BlockPool.objects.PushStack(m_Board[r, c].GetComponent<BlockScript>());
-        m_Board[r, c] = null;
+        if (m_Board[r, c].GetComponent<BlockScript>().Type == BlockScript.BLOCK_TYPE.NORMAL)
+        {
+            m_Board[r, c].GetComponent<BlockScript>().InitBlock();
+            m_BlockPool.objects.PushStack(m_Board[r, c].GetComponent<BlockScript>());
+            m_Board[r, c] = null;
+        }
+        else
+        {
+            if (m_Board[r, c].GetComponent<BlockScript>().Type != BlockScript.BLOCK_TYPE.FLOWER)
+            {
+                m_Board[r, c].GetComponent<BlockScript>().Color = BlockScript.BLOCK_COLOR.NONE;
+                m_Board[r, c].GetComponent<SpriteRenderer>().color = UnityEngine.Color.gray;
+            }
+            else
+            {
+                m_Board[r, c].GetComponent<SpriteRenderer>().color += new Color(0f, 0f, 0f, -0.5f);
+            }
+        }
 
     }
 
-    public void ExplodeBlock(int r, int c)
+    public void ExplodeBlock(COORDINATE coord)
     {
-        Debug.Log(r + "," + c + " explode");
+        Debug.Log(coord.row + "," + coord.col + " explode");
 
-        var dir = m_Board[r, c].GetComponent<BlockScript>().Direction;
-
-        Coord_list.Clear();
+        //Coord_list.Clear();
         bool[,] visited = new bool[Row, Col];
         Array.Clear(visited, 0, m_matrix.cnt);
-        Explode_DFS(visited, r, c);
+
+        int r = coord.row, c = coord.col;
+        int cnt = m_Board[r, c].GetComponent<BlockScript>().Connected;
+        var dir = m_Board[r, c].GetComponent<BlockScript>().Direction;
+
+        if (cnt >= 9)
+            m_Board[r, c].GetComponent<BlockScript>().Type = BlockScript.BLOCK_TYPE.FLOWER;
+        else if (cnt >= 7)
+            m_Board[r, c].GetComponent<BlockScript>().Type = BlockScript.BLOCK_TYPE.BOMB;
+        else if (cnt >= 5)
+            m_Board[r, c].GetComponent<BlockScript>().Type = BlockScript.BLOCK_TYPE.VERTICAL;
+
+        Explode_DFS(visited, coord);
+
+        if (m_Board[r, c] != null && m_Board[r, c].GetComponent<BlockScript>().Type == BlockScript.BLOCK_TYPE.VERTICAL)
+        {
+            int r_max = 0, r_min = m_matrix.row, c_max = 0, c_min = m_matrix.col;
+            foreach (var i in Coord_list)
+            {
+                if (i.row > r_max) r_max = i.row;
+                if (i.row < r_min) r_min = i.row;
+                if (i.col > c_max) c_max = i.col;
+                if (i.col < c_min) c_min = i.col;
+            }
+            if (r_max - r_min < c_max - c_min)
+                m_Board[r, c].GetComponent<BlockScript>().Type = BlockScript.BLOCK_TYPE.HORIZONTAL;
+            // 높이와 너비가 같은 5개, 6개 짜리 블록의 모음은 다양하므로 이 경우엔 랜덤으로 수평/수직을 정한다.
+            else if (r_max - r_min ==  c_max - c_min)
+            {
+                int rnd = UnityEngine.Random.Range(0, 2);
+                Debug.Log(rnd);
+                if (rnd / 2 == 0)
+                    m_Board[r, c].GetComponent<BlockScript>().Type = BlockScript.BLOCK_TYPE.HORIZONTAL;                
+            }
+        }
         FillBlock(dir);
+    }
+
+    public void ExplodeSpecial(int r, int c)
+    {
+        ExplodeSpecial(new COORDINATE { row = r, col = c });
+    }
+    public void ExplodeSpecial(COORDINATE coord)
+    {
+        int r = coord.row, c = coord.col;
+        var dir = m_Board[r, c].GetComponent<BlockScript>().Direction;
+        var color = m_Board[r, c].GetComponent<BlockScript>().Color;
+        //Queue<COORDINATE> q_coord = new Queue<COORDINATE>();
+        Queue <GameObject> q_block = new Queue<GameObject>();
+
+        switch (m_Board[r, c].GetComponent<BlockScript>().Type)
+        {
+            case BlockScript.BLOCK_TYPE.HORIZONTAL:
+                for (int nc = 0; nc < m_matrix.col; ++nc)
+                {
+                    // 폭발 로직
+                    if (m_Board[r, nc] == null) continue;
+                    if (m_Board[r, nc].GetComponent<BlockScript>().Type == BlockScript.BLOCK_TYPE.NORMAL ||
+                        nc == c)
+                    {
+                        Coord_list.Add(new COORDINATE { row = r, col = nc });
+                        m_Board[r, nc].GetComponent<BlockScript>().InitBlock();
+                        m_BlockPool.objects.PushStack(m_Board[r, nc].GetComponent<BlockScript>());
+                        m_Board[r, nc] = null;
+                    }
+                    else
+                    {
+                        //ExplodeSpecial(r, nc);
+                        //q_coord.Enqueue(new COORDINATE { row = r, col = nc });
+                        q_block.Enqueue(m_Board[r, nc]);
+                    }
+                }
+                FillBlock(dir);
+
+                Coord_list.Clear();
+                while (q_block.Count > 0)
+                {
+                    var tmp = q_block.Dequeue();
+                    ExplodeSpecial(tmp.GetComponent<BlockScript>().Coord.row, tmp.GetComponent<BlockScript>().Coord.col);
+                }
+                break;
+
+            case BlockScript.BLOCK_TYPE.VERTICAL:
+                for (int nr = 0; nr < m_matrix.row; ++nr)
+                {
+                    // 폭발 로직
+                    if (m_Board[nr, c] == null) continue;
+                    if (m_Board[nr, c].GetComponent<BlockScript>().Type == BlockScript.BLOCK_TYPE.NORMAL ||
+                        nr == r)
+                    {
+                        Coord_list.Add(new COORDINATE { row = nr, col = c });
+                        m_Board[nr, c].GetComponent<BlockScript>().InitBlock();
+                        m_BlockPool.objects.PushStack(m_Board[nr, c].GetComponent<BlockScript>());
+                        m_Board[nr, c] = null;
+                    }
+                    else
+                    {
+                        //ExplodeSpecial(nr, c);
+                        //q_coord.Enqueue(new COORDINATE { row = nr, col = c });
+                        q_block.Enqueue(m_Board[nr, c]);
+                    }
+                }
+                FillBlock(dir);
+
+                Coord_list.Clear();
+                //while (q_coord.Count > 0)
+                while(q_block.Count > 0)
+                {
+                    var tmp = q_block.Dequeue();
+                    ExplodeSpecial(tmp.GetComponent<BlockScript>().Coord.row, tmp.GetComponent<BlockScript>().Coord.col);
+                }
+                break;
+
+            case BlockScript.BLOCK_TYPE.BOMB:
+                for (int i = -1; i < 2; ++i)
+                {
+                    for (int k = -1; k < 2; ++k)
+                    {
+                        int nr = r + i, nc = c + k;
+                        if (nr < 0 || nc < 0 || nr >= m_matrix.row || nc >= m_matrix.col) continue;
+                        if (m_Board[nr, nc] == null) continue;
+                        if (m_Board[nr, nc].GetComponent<BlockScript>().Type == BlockScript.BLOCK_TYPE.NORMAL ||
+                            nr == r)
+                        {
+                            Coord_list.Add(new COORDINATE { row = nr, col = nc });
+                            m_Board[nr, nc].GetComponent<BlockScript>().InitBlock();
+                            m_BlockPool.objects.PushStack(m_Board[nr, nc].GetComponent<BlockScript>());
+                            m_Board[nr, nc] = null;
+                        }
+                        else
+                        {
+                            q_block.Enqueue(m_Board[nr, nc]);
+                        }
+
+                    }
+                }
+                FillBlock(dir);
+
+                Coord_list.Clear();
+                while (q_block.Count > 0)
+                {
+                    var tmp = q_block.Dequeue();
+                    ExplodeSpecial(tmp.GetComponent<BlockScript>().Coord.row, tmp.GetComponent<BlockScript>().Coord.col);
+                }
+                break;
+
+            case BlockScript.BLOCK_TYPE.FLOWER:
+                for (int nr = 0; nr < m_matrix.row; ++nr)
+                {
+                    for (int nc = 0; nc < m_matrix.col; ++nc)
+                    {
+                        if (m_Board[nr, nc].GetComponent<BlockScript>().Color == color)
+                        {
+                            Coord_list.Add(new COORDINATE { row = nr, col = nc });
+                            m_Board[nr, nc].GetComponent<BlockScript>().InitBlock();
+                            m_BlockPool.objects.PushStack(m_Board[nr, nc].GetComponent<BlockScript>());
+                            m_Board[nr, nc] = null;
+                        }
+                    }
+                }
+                FillBlock(dir);
+                break;
+
+        }
+
     }
 
     public void FillBlock(BlockScript.BLOCK_DIRECTION dir)
     {
-        // Direction of Fill
-        // North : ASC Row
-        // South : DEC Row
-        // West : ASC Col
-        // East : DEC Col
+        /*
+        Direction of Fill
+        North : ASC Row
+        South : DEC Row
+        West : ASC Col
+        East : DEC Col
+         */
 
         SortedSet<int> Rows = new SortedSet<int>();
         SortedSet<int> Cols = new SortedSet<int>();
@@ -218,7 +411,6 @@ public class BoardManagerScript : MonoBehaviour
         }
 
         Queue<COORDINATE> q = new Queue<COORDINATE>();
-
         switch (dir)
         {
             case BlockScript.BLOCK_DIRECTION.NORTH:
@@ -232,20 +424,21 @@ public class BoardManagerScript : MonoBehaviour
                     {
                         if (m_Board[r, c] == null)
                         {
+                            // 이동할 블록을 큐에 추가
                             q.Enqueue(new COORDINATE { row = r, col = c });
                         }
+                        //else if (m_Board[r, c].GetComponent<BlockScript>().Type != BlockScript.BLOCK_TYPE.NORMAL) continue;
                         else if (q.Count != 0)
                         {
                             COORDINATE dest = q.Dequeue();
                             Vector3 pos = m_Position[dest.row, dest.col];
                             m_Board[r, c].GetComponent<BlockScript>().MoveBlock(pos);
-                            m_Board[r, c].GetComponent<BlockScript>().Coord = new COORDINATE { row = dest.row, col = dest.col };
+                            m_Board[r, c].GetComponent<BlockScript>().Coord = dest;
                             m_Board[dest.row, dest.col] = m_Board[r, c];
                             m_Board[r, c] = null;
                             q.Enqueue(new COORDINATE { row = r, col = c });
                         }
                     }
-
                     int k = 1;
                     while (q.Count > 0)
                     {
@@ -256,7 +449,6 @@ public class BoardManagerScript : MonoBehaviour
                         obj.transform.SetParent(transform);
                         COORDINATE dest = q.Dequeue();
                         Vector3 pos = m_Position[dest.row, dest.col];
-                        //obj.GetComponent<BlockScript>().Coord = new COORDINATE { row = k - 1, col = c };
                         obj.GetComponent<BlockScript>().Coord = dest;
                         obj.GetComponent<BlockScript>().MoveBlock(pos);
                         m_Board[dest.row, dest.col] = obj;
@@ -264,30 +456,30 @@ public class BoardManagerScript : MonoBehaviour
                     }
                 }
                 break;
+
             case BlockScript.BLOCK_DIRECTION.SOUTH:
                 for (int i = 0; i < Cols.Count; ++i)
                 {
                     int c = Cols.ElementAt(i);
                     q.Clear();
-                    //for (int r = m_matrix.row - 1; r >= 0; --r)
                     for (int r = 0; r < m_matrix.row; ++r)
                     {
                         if (m_Board[r, c] == null)
                         {
                             q.Enqueue(new COORDINATE { row = r, col = c });
                         }
+                        //else if (m_Board[r, c].GetComponent<BlockScript>().Type != BlockScript.BLOCK_TYPE.NORMAL) continue;
                         else if (q.Count != 0)
                         {
                             COORDINATE dest = q.Dequeue();
                             Vector3 pos = m_Position[dest.row, dest.col];
                             m_Board[r, c].GetComponent<BlockScript>().MoveBlock(pos);
-                            m_Board[r, c].GetComponent<BlockScript>().Coord = new COORDINATE { row = dest.row, col = dest.col };
+                            m_Board[r, c].GetComponent<BlockScript>().Coord = dest;
                             m_Board[dest.row, dest.col] = m_Board[r, c];
                             m_Board[r, c] = null;
                             q.Enqueue(new COORDINATE { row = r, col = c });
                         }
                     }
-
                     int k = 1;
                     while (q.Count > 0)
                     {
@@ -298,7 +490,6 @@ public class BoardManagerScript : MonoBehaviour
                         obj.transform.SetParent(transform);
                         COORDINATE dest = q.Dequeue();
                         Vector3 pos = m_Position[dest.row, dest.col];
-                        //obj.GetComponent<BlockScript>().Coord = new COORDINATE { row = -k + 1, col = c };
                         obj.GetComponent<BlockScript>().Coord = dest;
                         obj.GetComponent<BlockScript>().MoveBlock(pos);
                         m_Board[dest.row, dest.col] = obj;
@@ -313,29 +504,27 @@ public class BoardManagerScript : MonoBehaviour
                 {
                     int r = Rows.ElementAt(i);
                     q.Clear();
-                    //for (int c = 0; c < m_matrix.col; ++c)
                     for (int c = m_matrix.col - 1; c >= 0; --c)
                     {
                         if (m_Board[r, c] == null)
                         {
                             q.Enqueue(new COORDINATE { row = r, col = c });
                         }
+                        //else if (m_Board[r, c].GetComponent<BlockScript>().Type != BlockScript.BLOCK_TYPE.NORMAL) continue;
                         else if (q.Count != 0)
                         {
                             COORDINATE dest = q.Dequeue();
                             Vector3 pos = m_Position[dest.row, dest.col];
                             m_Board[r, c].GetComponent<BlockScript>().MoveBlock(pos);
-                            m_Board[r, c].GetComponent<BlockScript>().Coord = new COORDINATE { row = dest.row, col = dest.col };
+                            m_Board[r, c].GetComponent<BlockScript>().Coord = dest;
                             m_Board[dest.row, dest.col] = m_Board[r, c];
                             m_Board[r, c] = null;
                             q.Enqueue(new COORDINATE { row = r, col = c });
                         }
                     }
-
                     int k = 1;
                     while (q.Count > 0)
                     {
-                        Debug.Log(k + "," + r);
                         Vector3 worldPos = _grid.GetCellCenterWorld(new Vector3Int(-k, m_matrix.row - r));
                         GameObject obj = m_BlockPool.objects.PopStack().gameObject;
                         obj.SetActive(true);
@@ -343,43 +532,40 @@ public class BoardManagerScript : MonoBehaviour
                         obj.transform.SetParent(transform);
                         COORDINATE dest = q.Dequeue();
                         Vector3 pos = m_Position[dest.row, dest.col];
-                        //obj.GetComponent<BlockScript>().Coord = new COORDINATE { row = r, col = -k };
                         obj.GetComponent<BlockScript>().Coord = dest;
                         obj.GetComponent<BlockScript>().MoveBlock(pos);
                         m_Board[dest.row, dest.col] = obj;
                         ++k;
                     }
                 }
-
                 break;
+
             case BlockScript.BLOCK_DIRECTION.EAST:
                 for (int i = 0; i < Rows.Count; ++i)
                 {
                     int r = Rows.ElementAt(i);
                     q.Clear();
                     for (int c = 0; c < m_matrix.col; ++c)
-                    //for (int c = m_matrix.col - 1; c >= 0; --c)
                     {
                         if (m_Board[r, c] == null)
                         {
                             q.Enqueue(new COORDINATE { row = r, col = c });
                         }
+                        //else if (m_Board[r, c].GetComponent<BlockScript>().Type != BlockScript.BLOCK_TYPE.NORMAL) continue;
                         else if (q.Count != 0)
                         {
                             COORDINATE dest = q.Dequeue();
                             Vector3 pos = m_Position[dest.row, dest.col];
                             m_Board[r, c].GetComponent<BlockScript>().MoveBlock(pos);
-                            m_Board[r, c].GetComponent<BlockScript>().Coord = new COORDINATE { row = dest.row, col = dest.col };
+                            m_Board[r, c].GetComponent<BlockScript>().Coord = dest;
                             m_Board[dest.row, dest.col] = m_Board[r, c];
                             m_Board[r, c] = null;
                             q.Enqueue(new COORDINATE { row = r, col = c });
                         }
                     }
-
                     int k = 0;
                     while (q.Count > 0)
                     {
-                        Debug.Log(k + "," + r);
                         Vector3 worldPos = _grid.GetCellCenterWorld(new Vector3Int(m_matrix.col + k, m_matrix.row - r));
                         GameObject obj = m_BlockPool.objects.PopStack().gameObject;
                         obj.SetActive(true);
@@ -387,14 +573,12 @@ public class BoardManagerScript : MonoBehaviour
                         obj.transform.SetParent(transform);
                         COORDINATE dest = q.Dequeue();
                         Vector3 pos = m_Position[dest.row, dest.col];
-                        //obj.GetComponent<BlockScript>().Coord = new COORDINATE { row = r, col = -k };
                         obj.GetComponent<BlockScript>().Coord = dest;
                         obj.GetComponent<BlockScript>().MoveBlock(pos);
                         m_Board[dest.row, dest.col] = obj;
                         ++k;
                     }
                 }
-
                 break;
         }
 

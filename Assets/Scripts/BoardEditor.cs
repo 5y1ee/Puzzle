@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEditor;
 using Unity.VisualScripting;
 
+#if UNITY_EDITOR
+
 [CustomEditor(typeof(BoardManagerScript))]
 public class BoardEditor : Editor
 {
@@ -82,3 +84,5 @@ public class BoardEditor : Editor
     }
 
 }
+
+#endif
